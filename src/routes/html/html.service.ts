@@ -7,13 +7,13 @@ import type { BrowserPool } from "@/browser/pool";
 export class HtmlService {
   constructor(private readonly pool: BrowserPool) {}
 
-  async getHtml(url: string, timeout: number): Promise<string> {
-    const browser: Browser = await this.pool.acquire();
+  async getHtml(url: string, signal: AbortSignal): Promise<string> {
+    const browser: Browser = await this.pool.acquire(signal);
 
     try {
       const page: PageWithCursor = browser.getPage();
 
-      await page.goto(url, { waitUntil: "domcontentloaded", timeout });
+      await page.goto(url, { waitUntil: "domcontentloaded", signal: signal });
 
       return await page.content();
     } finally {

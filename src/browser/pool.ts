@@ -1,6 +1,17 @@
 import { Browser } from "./browser";
 
-import type { BrowserPoolConfig } from "./types";
+export interface BrowserPoolConfig {
+  retryMS: number;
+  maxInstances: number;
+}
+
+export class BrowserAcquireAbortedError extends Error {
+  constructor() {
+    super("The browser acquisition operation was aborted");
+
+    Object.setPrototypeOf(this, BrowserAcquireAbortedError.prototype);
+  }
+}
 
 export class BrowserPool {
   private pool: Browser[] = [];
@@ -15,8 +26,10 @@ export class BrowserPool {
     }
   }
 
-  public async acquire(): Promise<Browser> {
+  public async acquire(signal?: AbortSignal): Promise<Browser> {
     while (true) {
+      if (signal?.aborted) throw new BrowserAcquireAbortedError();
+
       const browser: Browser | null = await this.tryAcquire();
 
       if (browser) return browser;

@@ -2,6 +2,7 @@ import type { RouteShorthandOptions } from "fastify";
 
 export interface GetHtmlQuery {
   url: string;
+  timeoutMS: number;
 }
 
 export const getHtmlSchema: RouteShorthandOptions = {
@@ -12,9 +13,9 @@ export const getHtmlSchema: RouteShorthandOptions = {
         url: {
           type: "string",
         },
-        timeout: {
+        timeoutMS: {
           type: "number",
-          default: 3_000,
+          default: 30_000,
         },
       },
       required: ["url"],
