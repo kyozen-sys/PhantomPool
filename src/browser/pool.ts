@@ -1,9 +1,6 @@
 import { Browser } from "./browser";
 
-interface BrowserPoolConfig {
-  retryMS: number;
-  maxInstances: number;
-}
+import type { BrowserPoolConfig } from "./types";
 
 export class BrowserPool {
   private pool: Browser[] = [];
