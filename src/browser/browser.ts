@@ -16,17 +16,10 @@ export class Browser {
 
   private busy: boolean = false;
 
-  static async init(override?: Options) {
-    const opt: Options = {
-      headless: false,
-      args: Browser.args,
-    };
+  async init(override?: Options) {
+    const opt: Options = { headless: false, args: Browser.args };
 
-    const browser: Browser = new Browser();
-
-    browser.connc = await connect({ ...opt, ...override });
-
-    return browser;
+    this.connc = await connect({ ...opt, ...override });
   }
 
   public async reset(): Promise<void> {

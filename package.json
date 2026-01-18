@@ -1,10 +1,9 @@
 {
   "name": "cfbypasspool",
-  "type": "module",
-  "module": "src/main.ts",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start": "bun run src/main.ts"
+    "start": "bun run src/server.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -5,34 +5,40 @@ export interface BrowserPoolConfig {
   maxInstances: number;
 }
 
-export class BrowserAcquireAbortedError extends Error {
+export class BrowserPoolAcquireAbortedError extends Error {
   constructor() {
     super("The browser acquisition operation was aborted");
 
-    Object.setPrototypeOf(this, BrowserAcquireAbortedError.prototype);
+    Object.setPrototypeOf(this, BrowserPoolAcquireAbortedError.prototype);
   }
 }
 
 export class BrowserPool {
-  private pool: Browser[] = [];
+  private browsers: Browser[] = [];
 
   constructor(private config: BrowserPoolConfig) {}
 
   public async init() {
     for (let i = 0; i < this.config.maxInstances; i++) {
-      const browser: Browser = await Browser.init();
+      const browser: Browser = new Browser();
 
-      this.pool.push(browser);
+      await browser.init();
+
+      this.browsers.push(browser);
     }
   }
 
   public async acquire(signal?: AbortSignal): Promise<Browser> {
     while (true) {
-      if (signal?.aborted) throw new BrowserAcquireAbortedError();
+      if (signal?.aborted) throw new BrowserPoolAcquireAbortedError();
 
-      const browser: Browser | null = await this.tryAcquire();
+      for (const browser of this.browsers) {
+        if (browser.isBusy()) continue;
 
-      if (browser) return browser;
+        browser.makeBusy();
+
+        return browser;
+      }
 
       await Bun.sleep(this.config.retryMS);
     }
@@ -42,17 +48,5 @@ export class BrowserPool {
     await browser.reset();
 
     browser.makeUnBusy();
-  }
-
-  private async tryAcquire(): Promise<Browser | null> {
-    for (const browser of this.pool) {
-      if (browser.isBusy()) continue;
-
-      browser.makeBusy();
-
-      return browser;
-    }
-
-    return null;
   }
 }
