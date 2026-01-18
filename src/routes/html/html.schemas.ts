@@ -1,5 +1,9 @@
 import type { RouteShorthandOptions } from "fastify";
 
+export interface GetHtmlQuery {
+  url: string;
+}
+
 export const getHtmlSchema: RouteShorthandOptions = {
   schema: {
     querystring: {
