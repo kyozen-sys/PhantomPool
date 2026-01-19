@@ -1,5 +1,7 @@
 import Fastify, { type FastifyInstance } from "fastify";
 
+import { Config } from "@/config";
+
 import { Queue } from "@/queue";
 
 import { BrowserPool, BrowserWorkerPool } from "@/browser";
@@ -9,11 +11,13 @@ import { NavigateModule } from "@/modules/navigate/navigate.module";
 const app: FastifyInstance = Fastify({ logger: true });
 
 async function bootstrap(): Promise<void> {
-  const browserPool = new BrowserPool({ size: 1, retryMS: 1_000 });
+  const config: Config = new Config();
+
+  const browserPool = new BrowserPool(config.browser.pool);
 
   await browserPool.init();
 
-  const browserQueue = new Queue();
+  const browserQueue = new Queue(config.queue);
 
   const workerPool = new BrowserWorkerPool(browserPool, browserQueue);
 

@@ -25,8 +25,8 @@ export class BrowserLease {
   constructor(
     private readonly controller: AbortController,
     private readonly browser: Browser,
+    private readonly lifeTimeMS: number,
     private readonly onReleased: BrowserLeaseOnReleased,
-    private readonly lifeTimeMS: number = 30_000,
   ) {
     this.signal = controller.signal;
 

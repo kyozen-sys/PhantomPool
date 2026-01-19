@@ -20,9 +20,7 @@ export class QueueFilledError extends Error {
 export class Queue {
   private jobs: Job<unknown>[] = [];
 
-  constructor(
-    private readonly config: QueueConfig = { retryMS: 10, maxJobs: 20 },
-  ) {}
+  constructor(private readonly config: QueueConfig) {}
 
   public enQueue<T>(job: Job<T>): void {
     if (this.isFull()) throw new QueueFilledError();
