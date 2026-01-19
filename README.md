@@ -1,4 +1,4 @@
-# cfbypasspool
+# PhantomPool
 
 To install dependencies:
 
