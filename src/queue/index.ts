@@ -1,3 +1,3 @@
-export { Queue } from "./queue";
+export { Queue, QueueFilledError, QueueJobAbortedError } from "./queue";
 
 export { Job } from "./job";
