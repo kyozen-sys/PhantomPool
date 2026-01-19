@@ -3,8 +3,9 @@ import { Browser } from "./browser";
 import { BrowserLease, type BrowserLeaseOnReleased } from "./lease";
 
 export interface BrowserPoolConfig {
-  size: number;
   retryMS: number;
+  size: number;
+  leaseTimeoutMS: number;
 }
 
 export class BrowserPoolLeaseAbortedError extends Error {
@@ -16,9 +17,7 @@ export class BrowserPoolLeaseAbortedError extends Error {
 export class BrowserPool {
   private browsers: Browser[] = [];
 
-  constructor(
-    private config: BrowserPoolConfig = { size: 1, retryMS: 1_000 },
-  ) {}
+  constructor(private config: BrowserPoolConfig) {}
 
   public async init() {
     for (let i = 0; i < this.config.size; i++) {
@@ -59,7 +58,9 @@ export class BrowserPool {
           b.makeUnBusy();
         };
 
-        return new BrowserLease(controller, browser, onReleased);
+        const { leaseTimeoutMS: timeoutMS } = this.config;
+
+        return new BrowserLease(controller, browser, timeoutMS, onReleased);
       }
 
       await Bun.sleep(this.config.retryMS);
