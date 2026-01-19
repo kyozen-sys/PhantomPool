@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
+import { QueueFilledError } from "@/queue";
+
 import { getSchema } from "./navigate.schema";
 
 import type { getSchemaOkRes, getSchemaQuery } from "./navigate.schema";
@@ -35,9 +37,11 @@ export class NavigateController {
         html: result.html,
       });
     } catch (err: unknown) {
-      if (controller.signal.aborted) {
+      if (controller.signal.aborted)
         return reply.code(499).send({ error: "Request aborted" });
-      }
+
+      if (err instanceof QueueFilledError)
+        return reply.code(429).send({ error: "Queue busy" });
 
       throw err;
     } finally {
