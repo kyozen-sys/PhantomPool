@@ -7,17 +7,32 @@ export type BrowserLeaseOnReleased = (
   dirt: boolean,
 ) => Promise<void>;
 
+export class BrowserLeaseReuseError extends Error {
+  constructor() {
+    super("You cannot reuse the same lease.");
+  }
+}
+
 export class BrowserLease {
   public readonly signal: AbortSignal;
 
   private released: boolean = false;
 
+  private usable: boolean = true;
+
+  private readonly cancelTimer: Timer;
+
   constructor(
-    private readonly browser: Browser,
     private readonly controller: AbortController,
+    private readonly browser: Browser,
     private readonly onReleased: BrowserLeaseOnReleased,
+    private readonly lifeTimeMS: number = 30_000,
   ) {
     this.signal = controller.signal;
+
+    this.cancelTimer = setTimeout(() => {
+      this.cancel("Maximum lifespan reached");
+    }, this.lifeTimeMS);
   }
 
   public async release(): Promise<void> {
@@ -25,7 +40,7 @@ export class BrowserLease {
 
     await this.onReleased?.(this.browser, false);
 
-    this.released = true;
+    this.discard();
   }
 
   public async cancel(reason?: string): Promise<void> {
@@ -35,10 +50,20 @@ export class BrowserLease {
 
     await this.onReleased?.(this.browser, true);
 
-    this.released = true;
+    this.discard();
   }
 
-  public acquirePage(): PageWithCursor {
+  public getPage(): PageWithCursor {
+    if (!this.usable) throw new BrowserLeaseReuseError();
+
     return this.browser.getPage();
+  }
+
+  private discard() {
+    clearTimeout(this.cancelTimer);
+
+    this.usable = false;
+
+    this.released = true;
   }
 }

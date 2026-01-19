@@ -1,6 +1,8 @@
 import type { PageWithCursor } from "puppeteer-real-browser";
 
-import type { BrowserLease, BrowserPool } from "@/browser";
+import { Job, Queue } from "@/queue";
+
+import type { BrowserLease } from "@/browser";
 
 export interface NavigateResult {
   status: number;
@@ -9,19 +11,17 @@ export interface NavigateResult {
 }
 
 export class NavigateService {
-  constructor(private browserPool: BrowserPool) {}
+  constructor(private readonly queue: Queue) {}
 
   async navigate(
     url: string,
     controller: AbortController,
   ): Promise<NavigateResult> {
-    const lease: BrowserLease = await this.browserPool.acquireLease(controller);
-
-    try {
-      const page: PageWithCursor = lease.acquirePage();
+    const executor = async (lease: BrowserLease): Promise<NavigateResult> => {
+      const page: PageWithCursor = lease.getPage();
 
       const res = await page.goto(url, {
-        signal: controller.signal,
+        signal: lease.signal,
         waitUntil: "domcontentloaded",
       });
 
@@ -31,11 +31,13 @@ export class NavigateService {
 
       const html: string = await page.content();
 
-      return { html, status, agent };
-    } finally {
-      await lease.release();
-    }
+      return { status, agent, html };
+    };
+
+    const job = new Job<NavigateResult>(controller, executor);
+
+    this.queue.enQueue(job);
+
+    return job.promise;
   }
 }
-
-export default { NavigateService };

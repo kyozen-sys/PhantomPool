@@ -1,19 +1,20 @@
 import type { FastifyInstance } from "fastify";
 
-import type { BrowserPool } from "@/browser";
+import type { Queue } from "@/queue";
 
 import { NavigateService } from "./navigate.service";
+
 import { NavigateController } from "./navigate.controller";
 
 export class NavigateModule {
   private readonly prefix: string = "navigate";
 
-  private service!: NavigateService;
+  private service: NavigateService;
 
-  private controller!: NavigateController;
+  private controller: NavigateController;
 
-  constructor(browserPool: BrowserPool) {
-    this.service = new NavigateService(browserPool);
+  constructor(browserQueue: Queue) {
+    this.service = new NavigateService(browserQueue);
 
     this.controller = new NavigateController(this.service);
   }
@@ -22,5 +23,3 @@ export class NavigateModule {
     await app.register(this.controller.plugin, { prefix: this.prefix });
   };
 }
-
-export default { NavigateModule };
