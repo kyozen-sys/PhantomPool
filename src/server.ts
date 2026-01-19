@@ -23,7 +23,7 @@ async function bootstrap(): Promise<void> {
 
   await app.register(navigateModule.plugin);
 
-  await app.listen({ port: 4000 });
+  await app.listen({ port: 4000, host: "0.0.0.0" });
 }
 
 await bootstrap();
