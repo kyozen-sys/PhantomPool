@@ -1,15 +1,15 @@
 import { Browser } from "./browser";
 
+import { BrowserLease, type BrowserLeaseOnReleased } from "./lease";
+
 export interface BrowserPoolConfig {
   retryMS: number;
   maxInstances: number;
 }
 
-export class BrowserPoolAcquireAbortedError extends Error {
+export class BrowserPoolLeaseAborted extends Error {
   constructor() {
-    super("The browser acquisition operation was aborted");
-
-    Object.setPrototypeOf(this, BrowserPoolAcquireAbortedError.prototype);
+    super("Lease acquisition aborted");
   }
 }
 
@@ -28,25 +28,33 @@ export class BrowserPool {
     }
   }
 
-  public async acquire(signal?: AbortSignal): Promise<Browser> {
+  public async acquireLease(
+    controller: AbortController,
+  ): Promise<BrowserLease> {
     while (true) {
-      if (signal?.aborted) throw new BrowserPoolAcquireAbortedError();
+      if (controller.signal.aborted) throw new BrowserPoolLeaseAborted();
 
       for (const browser of this.browsers) {
         if (browser.isBusy()) continue;
 
         browser.makeBusy();
 
-        return browser;
+        const onReleased: BrowserLeaseOnReleased = async (b, dirty) => {
+          await b.reset(dirty);
+
+          b.makeUnBusy();
+        };
+
+        const lease: BrowserLease = new BrowserLease(
+          browser,
+          controller,
+          onReleased,
+        );
+
+        return lease;
       }
 
       await Bun.sleep(this.config.retryMS);
     }
-  }
-
-  public async release(browser: Browser): Promise<void> {
-    await browser.reset();
-
-    browser.makeUnBusy();
   }
 }

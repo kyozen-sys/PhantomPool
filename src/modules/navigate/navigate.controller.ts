@@ -41,7 +41,7 @@ export class NavigateController {
     try {
       const result: NavigateResult = await this.service.navigate(
         url,
-        controller.signal,
+        controller,
       );
 
       return reply.send({
