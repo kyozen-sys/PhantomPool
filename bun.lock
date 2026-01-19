@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "cfbypasspool",
+      "name": "phantompool",
       "dependencies": {
         "fastify": "^5.7.1",
         "puppeteer-real-browser": "^1.4.4",

@@ -1,5 +1,5 @@
 {
-  "name": "cfbypasspool",
+  "name": "phantompool",
   "private": true,
   "type": "module",
   "scripts": {
