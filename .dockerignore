@@ -1,0 +1,12 @@
+# Node
+node_modules
+
+# Local
+.env
+
+# Github
+.git
+.gitignore
+
+# Build
+dist
