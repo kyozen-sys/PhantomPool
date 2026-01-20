@@ -1,12 +1,19 @@
 {
-  "name": "cfbypasspool",
-  "module": "index.ts",
-  "type": "module",
+  "name": "phantompool",
+  "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/server.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
   "peerDependencies": {
     "typescript": "^5"
+  },
+  "dependencies": {
+    "fastify": "^5.7.1",
+    "puppeteer-real-browser": "^1.4.4"
   }
 }
