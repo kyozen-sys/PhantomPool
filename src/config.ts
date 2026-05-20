@@ -5,7 +5,6 @@ export interface ConfigEnv {
   };
   browser: {
     pool: {
-      retryMS: number;
       size: number;
       leaseTimeoutMS: number;
     };
@@ -30,7 +29,6 @@ export class Config {
 
   public readonly browser: ConfigEnv["browser"] = {
     pool: {
-      retryMS: this.loadEnv("BROWSER_POOL_RETRYMS", 3_000),
       size: this.loadEnv("BROWSER_POOL_SIZE", 2),
       leaseTimeoutMS: this.loadEnv("BROWSER_LEASE_TIMEOUTMS", 60_000),
     },

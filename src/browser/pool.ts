@@ -3,7 +3,6 @@ import { Browser } from "./browser";
 import { BrowserLease, type BrowserLeaseOnReleased } from "./lease";
 
 export interface BrowserPoolConfig {
-  retryMS: number;
   size: number;
   leaseTimeoutMS: number;
 }
@@ -16,6 +15,8 @@ export class BrowserPoolLeaseAbortedError extends Error {
 
 export class BrowserPool {
   private browsers: Browser[] = [];
+
+  private waiters: Array<(b: Browser) => void> = [];
 
   constructor(private config: BrowserPoolConfig) {}
 
@@ -44,25 +45,44 @@ export class BrowserPool {
       { once: true },
     );
 
-    while (true) {
-      if (controller.signal.aborted) throw new BrowserPoolLeaseAbortedError();
+    const free: Browser | undefined = this.browsers.find(b => !b.isBusy());
 
-      for (const browser of this.browsers) {
-        if (browser.isBusy()) continue;
+    const timeout: number = this.config.leaseTimeoutMS;
 
-        browser.makeBusy();
+    const onReleased: BrowserLeaseOnReleased = async (b) => {
+      const next = this.waiters.shift(); // handoff direto pro próximo waiter mantém `busy` — evita race com novos acquireLease
 
-        const onReleased: BrowserLeaseOnReleased = async (b) => {
-          b.makeUnBusy();
-        };
-
-        const { leaseTimeoutMS: timeoutMS } = this.config;
-
-        return new BrowserLease(controller, browser, timeoutMS, onReleased);
+      if (next) next(b);
+      else {
+        b.makeUnBusy();
       }
+    };
 
-      await Bun.sleep(this.config.retryMS);
+    if (free) {
+      free.makeBusy();
+
+      return new BrowserLease(controller, free, timeout, onReleased);
     }
+
+    const { promise, resolve, reject } = Promise.withResolvers<Browser>();
+
+    const onAbort = () => {
+      const index = this.waiters.indexOf(resolve);
+
+      if (index !== -1) this.waiters.splice(index, 1);
+
+      reject(new BrowserPoolLeaseAbortedError());
+    }
+
+    controller.signal.addEventListener("abort", onAbort, { once: true });
+
+    this.waiters.push(resolve);
+
+    return promise.then((b) => {
+      controller.signal.removeEventListener("abort", onAbort);
+
+      return new BrowserLease(controller, b, timeout, onReleased)
+    });
   }
 
   public getSize(): number {
