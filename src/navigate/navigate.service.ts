@@ -1,5 +1,3 @@
-import type { PageWithCursor } from "puppeteer-real-browser";
-
 import { Job, Queue } from "@/queue";
 
 import type { BrowserLease } from "@/browser";
@@ -18,7 +16,7 @@ export class NavigateService {
     controller: AbortController,
   ): Promise<NavigateResult> {
     const executor = async (lease: BrowserLease): Promise<NavigateResult> => {
-      const page: PageWithCursor = lease.getPage();
+      const page = await lease.getPage();
 
       const res = await page.goto(url, {
         signal: lease.signal,

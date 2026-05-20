@@ -52,9 +52,7 @@ export class BrowserPool {
 
         browser.makeBusy();
 
-        const onReleased: BrowserLeaseOnReleased = async (b, dirty) => {
-          await b.reset(dirty);
-
+        const onReleased: BrowserLeaseOnReleased = async (b) => {
           b.makeUnBusy();
         };
 

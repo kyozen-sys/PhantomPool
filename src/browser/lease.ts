@@ -1,11 +1,6 @@
 import { Browser } from "./browser";
 
-import type { PageWithCursor } from "puppeteer-real-browser";
-
-export type BrowserLeaseOnReleased = (
-  browser: Browser,
-  dirt: boolean,
-) => Promise<void>;
+export type BrowserLeaseOnReleased = ( browser: Browser ) => Promise<void>;
 
 export class BrowserLeaseReuseError extends Error {
   constructor() {
@@ -38,7 +33,7 @@ export class BrowserLease {
   public async release(): Promise<void> {
     if (this.released) return;
 
-    await this.onReleased?.(this.browser, false);
+    await this.onReleased?.(this.browser);
 
     this.discard();
   }
@@ -48,12 +43,12 @@ export class BrowserLease {
 
     this.controller.abort(reason);
 
-    await this.onReleased?.(this.browser, true);
+    await this.onReleased?.(this.browser);
 
     this.discard();
   }
 
-  public getPage(): PageWithCursor {
+  public async getPage() {
     if (!this.usable) throw new BrowserLeaseReuseError();
 
     return this.browser.getPage();

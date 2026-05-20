@@ -22,31 +22,10 @@ export class Browser {
     this.connc = await connect({ ...opt, ...override });
   }
 
-  public async reset(brute?: boolean): Promise<void> {
-    const page: PageWithCursor = this.connc.page;
+  public async getPage() {
+    const ctx = await this.connc.browser.createBrowserContext();
 
-    if (brute)
-      try {
-        await page.evaluate(() => window.stop());
-      } catch {}
-
-    try {
-      await page.goto("about:blank", { timeout: 5_000 });
-    } catch {}
-
-    try {
-      await page.evaluate(() => {
-        document.open();
-
-        document.write("");
-
-        document.close();
-      });
-    } catch {}
-  }
-
-  public getPage(): PageWithCursor {
-    return this.connc.page;
+    return ctx.newPage()
   }
 
   public isBusy(): boolean {
