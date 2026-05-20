@@ -13,25 +13,67 @@ export class BrowserPoolLeaseAbortedError extends Error {
   }
 }
 
-export class BrowserPool {
-  private browsers: Browser[] = [];
+export class BrowserPoolClosedError extends Error {
+  constructor() {
+    super("Pool is closed");
+  }
+}
 
-  private waiters: Array<(b: Browser) => void> = [];
+export class BrowserPool {
+  private working: boolean = true;
+
+  private controller = new AbortController();
+
+  private browsers = new Map<Browser, BrowserLease | null>();
+
+  private waiters: ((b: Browser) => void)[] = [];
 
   constructor(private config: BrowserPoolConfig) {}
 
   public async init() {
-    for (let i = 0; i < this.config.size; i++) {
-      const browser: Browser = new Browser();
+    await Promise.all(Array.from({ length: this.config.size }, () => this.spawn()));
+  }
 
-      await browser.init();
+  public async close(): Promise<void> {
+    this.working = false;
 
-      this.browsers.push(browser);
+    this.controller.abort("Pool is closing");
+
+    await Promise.all(
+      [...this.browsers.keys()].map((b) => b.close().catch(() => {})),
+    );
+  }
+
+  private async spawn(): Promise<Browser> {
+    while (this.working) {
+      try { 
+        const browser = new Browser();
+
+        await browser.init();
+
+        browser.setOnDead((dead) => this.handleDeath(dead));
+
+        this.browsers.set(browser, null);
+
+        const next = this.waiters.shift();
+
+        if (next) next(browser);
+
+        return browser;
+      } catch {
+        await Bun.sleep(1000);
+      }
     }
+
+    throw new BrowserPoolClosedError();
   }
 
   public async acquireLease(signal: AbortSignal): Promise<BrowserLease> {
-    const controller: AbortController = new AbortController();
+    if (!this.working) throw new BrowserPoolClosedError();
+
+    const controller = new AbortController();
+
+    const sub = new AbortController();
 
     if (signal.aborted) {
       controller.abort("Upstream aborted");
@@ -42,31 +84,43 @@ export class BrowserPool {
     signal.addEventListener(
       "abort",
       () => controller.abort("Upstream aborted"),
-      { once: true },
+      { signal: sub.signal },
     );
 
-    const free: Browser | undefined = this.browsers.find(b => !b.isBusy());
+    this.controller.signal.addEventListener(
+      "abort",
+      () => controller.abort("Pool is closing"),
+      { signal: sub.signal },
+    );
 
     const timeout: number = this.config.leaseTimeoutMS;
 
     const onReleased: BrowserLeaseOnReleased = async (b) => {
-      const next = this.waiters.shift(); // handoff direto pro próximo waiter mantém `busy` — evita race com novos acquireLease
+      sub.abort();
 
+      const next = this.waiters.shift();
+      
       if (next) next(b);
       else {
-        b.makeUnBusy();
+        this.browsers.set(b, null);
       }
     };
 
-    if (free) {
-      free.makeBusy();
+    for (const [b, lease] of this.browsers) {
+      if (lease != null) continue;
 
-      return new BrowserLease(controller, free, timeout, onReleased);
+      const freshLease = new BrowserLease(controller, b, timeout, onReleased);
+
+      this.browsers.set(b, freshLease);
+
+      return freshLease;
     }
 
     const { promise, resolve, reject } = Promise.withResolvers<Browser>();
 
     const onAbort = () => {
+      sub.abort();
+      
       const index = this.waiters.indexOf(resolve);
 
       if (index !== -1) this.waiters.splice(index, 1);
@@ -81,11 +135,27 @@ export class BrowserPool {
     return promise.then((b) => {
       controller.signal.removeEventListener("abort", onAbort);
 
-      return new BrowserLease(controller, b, timeout, onReleased)
+      const lease = new BrowserLease(controller, b, timeout, onReleased);
+
+      this.browsers.set(b, lease);
+
+      return lease
     });
   }
 
-  public getSize(): number {
+  public getCapacity(): number {
     return this.config.size;
+  }
+
+  private async handleDeath(dead: Browser) {
+    if (!this.working) return;
+
+    const lease = this.browsers.get(dead);
+
+    this.browsers.delete(dead);
+
+    if (lease) await lease.cancel("Browser died").catch(() => {});
+
+    await this.spawn();
   }
 }

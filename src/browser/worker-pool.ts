@@ -15,7 +15,7 @@ export class BrowserWorkerPool {
   ) {}
 
   public async init() {
-    for (let i = 0; i < this.pool.getSize(); i++) {
+    for (let i = 0; i < this.pool.getCapacity(); i++) {
       const worker: BrowserWorker = new BrowserWorker(
         this.pool,
         this.controller.signal,
