@@ -1,13 +1,15 @@
+import { join } from "node:path";
+import { mkdtempSync } from "node:fs";
+
 import { connect } from "puppeteer-real-browser";
 
 import type {
   Options,
-  PageWithCursor,
   ConnectResult,
 } from "puppeteer-real-browser";
 
 export class Browser {
-  private static readonly args: string[] = [
+  private static readonly baseArgs: string[] = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
   ];
@@ -17,7 +19,12 @@ export class Browser {
   private busy: boolean = false;
 
   async init(override?: Options) {
-    const opt: Options = { headless: false, args: Browser.args };
+    const userDataDir = mkdtempSync(join("/tmp", "phantompool-"));
+
+    const opt: Options = {
+      headless: false,
+      args: [...Browser.baseArgs, `--user-data-dir=${userDataDir}`],
+    };
 
     this.connc = await connect({ ...opt, ...override });
   }
