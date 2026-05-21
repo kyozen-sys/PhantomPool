@@ -19,8 +19,6 @@ export class BrowserPoolClosedError extends Error {
 }
 
 export class BrowserPool {
-  private working: boolean = true;
-
   private controller = new AbortController();
 
   private browsers = new Map<Browser, BrowserLease | null>();
@@ -34,8 +32,6 @@ export class BrowserPool {
   }
 
   public async close(): Promise<void> {
-    this.working = false;
-
     this.controller.abort("Pool is closing");
 
     await Promise.all(
@@ -44,7 +40,7 @@ export class BrowserPool {
   }
 
   private async spawn(): Promise<Browser> {
-    while (this.working) {
+    while (!this.controller.signal.aborted) {
       try { 
         const browser = new Browser();
 
@@ -68,7 +64,7 @@ export class BrowserPool {
   }
 
   public async acquireLease(signal: AbortSignal): Promise<BrowserLease> {
-    if (!this.working) throw new BrowserPoolClosedError();
+    if (this.controller.signal.aborted) throw new BrowserPoolClosedError();
 
     const controller = new AbortController();
 
@@ -163,7 +159,7 @@ export class BrowserPool {
   }
 
   private async handleDeath(dead: Browser) {
-    if (!this.working) return;
+    if (this.controller.signal.aborted) return;
 
     const lease = this.browsers.get(dead);
 

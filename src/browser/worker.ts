@@ -2,7 +2,7 @@ import type { Job, Queue } from "@/queue";
 
 import type { BrowserLease } from "./lease";
 
-import type { BrowserPool } from "./pool";
+import type { BrowserPool } from "./browser-pool";
 
 export class BrowserWorker {
   constructor(
@@ -14,11 +14,11 @@ export class BrowserWorker {
     while (!this.signal.aborted) {
       const job: Job<unknown> = await queue.waitDeQueue(this.signal);
 
-      await this.process(job);
+      await this.execute(job);
     }
   }
 
-  private async process(job: Job<unknown>): Promise<void> {
+  private async execute(job: Job<unknown>): Promise<void> {
     let lease: BrowserLease | undefined;
 
     try {

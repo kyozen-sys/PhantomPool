@@ -2,7 +2,7 @@ import type { Queue } from "@/queue";
 
 import { BrowserWorker } from "./worker";
 
-import type { BrowserPool } from "./pool";
+import type { BrowserPool } from "./browser-pool";
 
 export class BrowserWorkerPool {
   private workers: BrowserWorker[] = [];
@@ -29,7 +29,7 @@ export class BrowserWorkerPool {
     }
   }
 
-  public stop(): void {
-    this.controller.abort();
+  public close(): void {
+    this.controller.abort("Pool is closing");
   }
 }

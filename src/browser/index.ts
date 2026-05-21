@@ -2,9 +2,9 @@ export { Browser } from "./browser";
 
 export { BrowserLease } from "./lease";
 
-export { BrowserPool } from "./pool";
+export { BrowserPool } from "./browser-pool";
 
-export type { BrowserPoolConfig } from "./pool";
+export type { BrowserPoolConfig } from "./browser-pool";
 
 export { BrowserWorker } from "./worker";
 
