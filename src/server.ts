@@ -6,7 +6,7 @@ import { Queue } from "@/queue";
 
 import { BrowserPool, BrowserWorkerPool } from "@/browser";
 
-import { NavigateModule } from "@/navigate/navigate.module";
+import { navigateModule as NavigateModule } from "@/navigate/navigate.module";
 
 const app: FastifyInstance = Fastify({ logger: true });
 
@@ -17,8 +17,6 @@ const browserPool = new BrowserPool(config.browser.pool);
 const browserQueue = new Queue(config.queue);
 
 const workerPool = new BrowserWorkerPool(browserPool, browserQueue);
-
-const navigateModule = new NavigateModule(browserQueue);
 
 async function shutdown(): Promise<void> {
   let state: boolean = false;
@@ -64,7 +62,7 @@ async function bootstrap(): Promise<void> {
 
   await workerPool.init();
 
-  await app.register(navigateModule.plugin);
+  await app.register(NavigateModule(browserQueue));
 
   await app.listen(config.server);
 
