@@ -11,7 +11,6 @@ export interface ConfigEnv {
   };
   queue: {
     maxJobs: number;
-    retryMS: number;
   };
 }
 
@@ -36,7 +35,6 @@ export class Config {
 
   public readonly queue: ConfigEnv["queue"] = {
     maxJobs: this.loadEnv("QUEUE_MAXJOBS", 10),
-    retryMS: this.loadEnv("QUEUE_RETRYMS", 100),
   };
 
   private loadEnv(key: string, def: string | number): any {

@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
-import { QueueFilledError } from "@/queue";
+import { QueueFilledError, QueueJobAbortedError } from "@/queue";
 
 import { getSchema } from "./navigate.schema";
 
@@ -24,10 +24,7 @@ export class NavigateController {
     request.raw.on("close", () => controller.abort());
 
     try {
-      const result: NavigateResult = await this.service.navigate(
-        url,
-        controller,
-      );
+      const result: NavigateResult = await this.service.navigate(url, controller);
 
       return reply.send({
         header: {
@@ -38,6 +35,9 @@ export class NavigateController {
       });
     } catch (err: unknown) {
       if (controller.signal.aborted)
+        return reply.code(499).send({ error: "Request aborted" });
+
+      if (err instanceof QueueJobAbortedError)
         return reply.code(499).send({ error: "Request aborted" });
 
       if (err instanceof QueueFilledError)

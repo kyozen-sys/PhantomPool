@@ -1,7 +1,6 @@
 import type { Job } from "./job";
 
 export interface QueueConfig {
-  retryMS: number;
   maxJobs: number;
 }
 
@@ -20,29 +19,56 @@ export class QueueFilledError extends Error {
 export class Queue {
   private jobs: Job<unknown>[] = [];
 
+  private waiters: Array<(job: Job<unknown>) => void> = [];
+
   constructor(private readonly config: QueueConfig) {}
 
   public enQueue<T>(job: Job<T>): void {
+    if (job.controller.signal.aborted) throw new QueueJobAbortedError();
+
+    const next = this.waiters.shift();
+
+    if (next) {
+      next(job as Job<unknown>); return;
+    }
+
     if (this.isFull()) throw new QueueFilledError();
 
     this.jobs.push(job as Job<unknown>);
   }
 
   public async waitDeQueue(signal?: AbortSignal): Promise<Job<unknown>> {
-    while (true) {
-      if (signal?.aborted) throw new QueueJobAbortedError();
+    if (signal?.aborted) throw new QueueJobAbortedError();
 
+    while (this.jobs.length > 0) {
       const job: Job<unknown> = this.jobs.shift()!;
 
-      if (!job) {
-        await Bun.sleep(this.config.retryMS);
-        continue;
-      }
+      if (!job.controller.signal.aborted) return job;
+    }
 
-      if (job.controller.signal.aborted) continue;
+    const { promise, resolve, reject } = Promise.withResolvers<Job<unknown>>();
+
+    const sub = new AbortController();
+
+    const onAbort = () => {
+      const index = this.waiters.indexOf(resolve);
+
+      if (index !== -1) this.waiters.splice(index, 1);
+
+      reject(new QueueJobAbortedError());
+    };
+
+    signal?.addEventListener("abort", onAbort, { signal: sub.signal });
+
+    this.waiters.push(resolve);
+
+    return promise.then((job) => {
+      sub.abort();
+
+      if (job.controller.signal.aborted) return this.waitDeQueue(signal);
 
       return job;
-    }
+    })
   }
 
   public size(): number {
