@@ -1,8 +1,8 @@
 import type { Job } from "./job";
 
-export interface QueueConfig {
-  maxJobs: number;
-}
+import type { ConfigEnv } from "@/config";
+
+export type QueueConfig = ConfigEnv["queue"];
 
 export class QueueJobAbortedError extends Error {
   constructor() {
