@@ -1,42 +1,18 @@
-import type { RouteShorthandOptions } from "fastify";
+import { Type, type Static } from "@sinclair/typebox";
 
-export interface getSchemaQuery {
-  url: string;
-  timeoutMS: number;
-}
+export const NavigateGetQuery = Type.Object({
+  url: Type.String({ format: "uri" }),
+  timeoutMS: Type.Optional(Type.Number({ default: 30_000 })),
+});
 
-export interface getSchemaOkRes {
-  header: {
-    status: number;
-    agent: string;
-  };
-  html: string;
-}
+export const NavigateGetOkResponse = Type.Object({
+  header: Type.Object({
+    status: Type.Number(),
+    agent: Type.String(),
+  }),
+  html: Type.String(),
+});
 
-export const getSchema: RouteShorthandOptions = {
-  schema: {
-    querystring: {
-      type: "object",
-      required: ["url"],
-      properties: {
-        url: { type: "string", format: "uri" },
-        timeoutMS: { type: "number", default: 30_000 },
-      },
-    },
-    response: {
-      200: {
-        type: "object",
-        properties: {
-          header: {
-            type: "object",
-            properties: {
-              status: { type: "number" },
-              agent: { type: "string" },
-            },
-          },
-          html: { type: "string" },
-        },
-      },
-    },
-  },
-};
+export type NavigateGetQuery = Static<typeof NavigateGetQuery>;
+
+export type NavigateGetOkResponse = Static<typeof NavigateGetOkResponse>;

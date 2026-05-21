@@ -2,9 +2,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 
 import { QueueFilledError, QueueJobAbortedError } from "@/queue";
 
-import { getSchema } from "./navigate.schema";
-
-import type { getSchemaOkRes, getSchemaQuery } from "./navigate.schema";
+import { NavigateGetOkResponse, NavigateGetQuery } from "./navigate.schema";
 
 import type { NavigateResult, NavigateService } from "./navigate.service";
 
@@ -12,10 +10,10 @@ export class NavigateController {
   constructor(private service: NavigateService) {}
 
   get = async (
-    request: FastifyRequest,
+    request: FastifyRequest<{ Querystring: NavigateGetQuery }>,
     reply: FastifyReply,
-  ): Promise<getSchemaOkRes> => {
-    const { url, timeoutMS } = request.query as getSchemaQuery;
+  ): Promise<NavigateGetOkResponse> => {
+    const { url, timeoutMS } = request.query;
 
     const controller = new AbortController();
 
@@ -50,6 +48,11 @@ export class NavigateController {
   };
 
   public plugin = async (app: FastifyInstance) => {
-    app.get("/", getSchema, this.get);
+    app.get("/", {
+      schema: {
+        querystring: NavigateGetQuery,
+        response: { 200: NavigateGetOkResponse },
+      }
+    }, this.get);
   };
 }
