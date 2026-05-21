@@ -6,6 +6,7 @@ export interface ConfigEnv {
   browser: {
     pool: {
       size: number;
+      maxLeasesPerBrowser: number;
       leaseTimeoutMS: number;
     };
   };
@@ -29,6 +30,7 @@ export class Config {
   public readonly browser: ConfigEnv["browser"] = {
     pool: {
       size: this.loadEnv("BROWSER_POOL_SIZE", 2),
+      maxLeasesPerBrowser: this.loadEnv("BROWSER_LEASE_PERBROWSER", 10),
       leaseTimeoutMS: this.loadEnv("BROWSER_LEASE_TIMEOUTMS", 60_000),
     },
   };

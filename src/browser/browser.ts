@@ -8,6 +8,10 @@ import type {
   ConnectResult,
 } from "puppeteer-real-browser";
 
+export type BrowserContext = Awaited<ReturnType<Awaited<ReturnType<typeof connect>>["browser"]["createBrowserContext"]>>;
+
+export type PageWithBrowserContext = Awaited<ReturnType<BrowserContext["newPage"]>>;
+
 export type BrowserOnDead = (b: Browser) => void;
 
 export class Browser {
@@ -17,6 +21,12 @@ export class Browser {
   ];
 
   private connc!: ConnectResult;
+
+  private context?: BrowserContext;
+
+  private page?: PageWithBrowserContext;
+
+  private leases: number = 0;
 
   private dead: boolean = false;
 
@@ -49,9 +59,27 @@ export class Browser {
   }
 
   public async getPage() {
-    const ctx = await this.connc.browser.createBrowserContext();
+    if (this.page) return this.page;
 
-    return ctx.newPage()
+    this.trackLease();
+
+    this.context = await this.connc.browser.createBrowserContext();
+
+    this.page = await this.context.newPage();
+
+    return this.page;
+  }
+
+  public async recycle(): Promise<void> {
+    await this.context?.close().catch(() => {});
+
+    this.page = undefined;
+
+    this.context = undefined;
+  }
+
+  public leaseCount(): number {
+    return this.leases;
   }
 
   public setOnDead(callb: BrowserOnDead): void {
@@ -60,5 +88,9 @@ export class Browser {
 
   public isDead(): boolean {
     return this.dead;
+  }
+
+  private trackLease(): void {
+    this.leases++;
   }
 }

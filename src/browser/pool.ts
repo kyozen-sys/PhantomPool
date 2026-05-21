@@ -2,10 +2,9 @@ import { Browser } from "./browser";
 
 import { BrowserLease, type BrowserLeaseOnReleased } from "./lease";
 
-export interface BrowserPoolConfig {
-  size: number;
-  leaseTimeoutMS: number;
-}
+import type { ConfigEnv } from "@/config";
+
+export type BrowserPoolConfig = ConfigEnv["browser"]["pool"];
 
 export class BrowserPoolLeaseAbortedError extends Error {
   constructor() {
@@ -97,6 +96,22 @@ export class BrowserPool {
 
     const onReleased: BrowserLeaseOnReleased = async (b) => {
       sub.abort();
+
+      if (b.isDead()) return;
+
+      if (b.leaseCount() >= this.config.maxLeasesPerBrowser) {
+        this.browsers.delete(b);
+
+        void (async () => {
+          await b.close().catch(() => {});
+
+          await this.spawn().catch(() => {});
+        })()
+
+        return;
+      }
+
+      await b.recycle().catch(() => {});
 
       const next = this.waiters.shift();
       
