@@ -1,7 +1,7 @@
 {
   "name": "phantompool",
   "description": "Browser pool that orchestrates real Chromium instances with leases, hard cancellation, and bounded backpressure",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {

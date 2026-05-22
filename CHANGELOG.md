@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/kyozen-sys/PhantomPool/compare/v0.2.0...v0.2.1) (2026-05-22)
+
+
+### Bug Fixes
+
+* **docker:** run from source instead of compiled binary ([19d0ba4](https://github.com/kyozen-sys/PhantomPool/commit/19d0ba48be2d27bce8188e8c32b6d3f27777c4f0))
+
 ## [0.2.0](https://github.com/kyozen-sys/PhantomPool/compare/v0.1.0...v0.2.0) (2026-05-22)
 
 
