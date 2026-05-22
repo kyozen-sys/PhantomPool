@@ -8,6 +8,10 @@ import { BrowserPool, BrowserWorkerPool } from "@/browser";
 
 import { navigateModule as NavigateModule } from "@/navigate/navigate.module";
 
+import swagger from "@fastify/swagger";
+
+import scalar from "@scalar/fastify-api-reference";
+
 const app: FastifyInstance = Fastify({ logger: true });
 
 const config: Config = new Config();
@@ -62,7 +66,11 @@ async function bootstrap(): Promise<void> {
 
   await workerPool.init();
 
+  await app.register(swagger, config.docs.swagger);
+
   await app.register(NavigateModule(browserQueue));
+
+  await app.register(scalar, config.docs.scalar);
 
   await app.listen(config.server);
 

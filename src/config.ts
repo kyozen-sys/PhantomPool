@@ -1,3 +1,9 @@
+import type { FastifyDynamicSwaggerOptions as SwaggerOptions } from "@fastify/swagger"
+
+import type { FastifyApiReferenceOptions as ScalarOptions } from "@scalar/fastify-api-reference"
+
+import pkg from "../package.json";
+
 export interface ConfigEnv {
   server: {
     host: string;
@@ -13,6 +19,10 @@ export interface ConfigEnv {
   queue: {
     maxJobs: number;
   };
+  docs: {
+    scalar: ScalarOptions;
+    swagger: SwaggerOptions;
+  }
 }
 
 export class ConfigInvalidEnvError extends Error {
@@ -38,6 +48,25 @@ export class Config {
   public readonly queue: ConfigEnv["queue"] = {
     maxJobs: this.loadEnv("QUEUE_MAXJOBS", 10),
   };
+
+  public readonly docs: ConfigEnv["docs"] = {
+    swagger: {
+      openapi: {
+        info: { title: "PhantomPool", description: pkg.description, version: pkg.version }
+      }
+    },
+    scalar: {
+      routePrefix: "/docs",
+      configuration: {
+        theme: "saturn",
+        layout: "classic",
+        hiddenClients: true,
+        hideSearch: true,
+        hideDarkModeToggle: true,
+        defaultOpenAllTags: true,
+      }
+    }
+  }
 
   private loadEnv(key: string, def: string | number): any {
     const env: string | undefined = Bun.env?.[key];
