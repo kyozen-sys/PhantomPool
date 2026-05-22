@@ -1,22 +1,17 @@
-FROM oven/bun:1.3.6 AS builder
+FROM oven/bun:1.3.6 AS deps
 
 WORKDIR /app
 
-COPY bun.lock tsconfig.json package.json ./
+COPY bun.lock package.json ./
 
 RUN bun install --frozen-lockfile
 
-COPY src ./src
-
-RUN bun build src/server.ts --compile --target bun-linux-x64 --outfile server
-
-FROM debian:bookworm-slim AS production
+FROM oven/bun:1.3.6 AS production
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends xvfb chromium \
-    fonts-liberation \
-    ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    xvfb chromium fonts-liberation ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 ENV CHROME_PATH=/usr/bin/chromium
@@ -34,12 +29,14 @@ ENV BROWSER_LEASE_TIMEOUTMS=60000
 
 ENV QUEUE_MAXJOBS=10
 
-COPY --from=builder /app/server /app/server
+COPY --from=deps /app/node_modules ./node_modules
 
-RUN useradd -m appuser && chown appuser:appuser /app/server
+COPY src ./src
 
-USER appuser
+COPY package.json tsconfig.json ./
+
+USER bun
 
 EXPOSE ${PORT}
 
-CMD ["./server"]
+CMD ["bun", "run", "start"]
