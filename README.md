@@ -1,5 +1,8 @@
 # PhantomPool
 
+[![CI](https://github.com/kyozen-sys/PhantomPool/actions/workflows/ci.yml/badge.svg)](https://github.com/kyozen-sys/PhantomPool/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/github/license/kyozen-sys/PhantomPool)](LICENSE)
+
 Browser pool built around a simple idea:
 
 > if you’re going to run real browsers, you need control — not just concurrency.
@@ -67,41 +70,20 @@ Leases give PhantomPool:
 
 ---
 
-### API
+### Run locally
 
-`GET /navigate`
+Requires [Bun](https://bun.sh).
 
-Query:
-
-- `url` (required)
-- `timeoutMS` (optional)
-
-Responses:
-
-- `200` – success
-- `429` – queue full
-- `499` – client aborted
-- `5xx` – internal error
-
----
-
-### Configuration
-
-Everything is configured via env vars.
-
-```env
-HOST=0.0.0.0
-PORT=4000
-
-BROWSER_POOL_SIZE=1
-
-BROWSER_LEASE_PERBROWSER=10
-BROWSER_LEASE_TIMEOUTMS=30000
-
-QUEUE_MAXJOBS=20
+```bash
+bun install
+bun start
 ```
 
-Defaults are conservative on purpose.
+For hot-reload during development:
+
+```bash
+bun start:dev
+```
 
 ---
 
@@ -126,7 +108,7 @@ This project is:
 
 Things that can improve:
 
-- smarter scheduling
+- priority / weighted scheduling
 - metrics
 - multiple browser types
 - distributed workers
