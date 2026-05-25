@@ -1,5 +1,6 @@
 import { join } from "node:path";
-import { mkdtempSync } from "node:fs";
+
+import { mkdtemp, rm } from "node:fs/promises";
 
 import { connect } from "puppeteer-real-browser";
 
@@ -12,7 +13,7 @@ export type BrowserContext = Awaited<ReturnType<Awaited<ReturnType<typeof connec
 
 export type PageWithBrowserContext = Awaited<ReturnType<BrowserContext["newPage"]>>;
 
-export type BrowserOnDead = (b: Browser) => void;
+export type BrowserOnDead = (b: Browser) => Promise<void>;
 
 export class Browser {
   private static readonly baseArgs: string[] = [
@@ -26,36 +27,29 @@ export class Browser {
 
   private page?: PageWithBrowserContext;
 
+  private userDataDir!: string;
+
   private leases: number = 0;
 
   private dead: boolean = false;
 
-  private onDead?: BrowserOnDead;
+  private onDead: BrowserOnDead = async () => this.cleanup();
 
   async init(override?: Options) {
-    const userDataDir = mkdtempSync(join("/tmp", "phantompool-"));
+    this.userDataDir = await mkdtemp(join("/tmp", "phantompool-"));
 
     const opt: Options = {
       headless: false,
-      args: [...Browser.baseArgs, `--user-data-dir=${userDataDir}`],
+      args: [...Browser.baseArgs, `--user-data-dir=${this.userDataDir}`],
     };
 
     this.connc = await connect({ ...opt, ...override });
 
-    this.connc.browser.on("disconnected", () => {
-      if (this.dead) return;
-      else {
-        this.dead = true;
-      }
-
-      this.onDead?.(this);
-    });
+    this.connc.browser.on("disconnected", () => this.onDead(this));
   }
 
   public async close(): Promise<void> {
-    this.dead = true;
-
-    await this.connc.browser.close().catch(() => {});
+    await this.connc.browser.close().catch(() => this.onDead(this));
   }
 
   public async getPage() {
@@ -83,7 +77,13 @@ export class Browser {
   }
 
   public setOnDead(callb: BrowserOnDead): void {
-    this.onDead = callb;
+    const wrapper = async (b: Browser) => {
+      await this.cleanup();
+
+      await callb(b);
+    };
+
+    this.onDead = wrapper;
   }
 
   public isDead(): boolean {
@@ -92,5 +92,14 @@ export class Browser {
 
   private trackLease(): void {
     this.leases++;
+  }
+
+  private async cleanup(): Promise<void> {
+    if (this.dead) return;
+    else {
+      this.dead = true;
+    }
+
+    await rm(this.userDataDir, { recursive: true, force: true }).catch(() => {});
   }
 }
