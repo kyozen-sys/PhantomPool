@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/kyozen-sys/PhantomPool/compare/v0.2.1...v0.2.2) (2026-05-25)
+
+
+### Bug Fixes
+
+* **browser:** cleanup user data dir on browser death to prevent disk leak ([684973f](https://github.com/kyozen-sys/PhantomPool/commit/684973f7b22275031edba9d11bf4eeafccb5a8fe))
+
 ## [0.2.1](https://github.com/kyozen-sys/PhantomPool/compare/v0.2.0...v0.2.1) (2026-05-22)
 
 
