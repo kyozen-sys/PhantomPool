@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+
 import { join } from "node:path";
 
 import { mkdtemp, rm } from "node:fs/promises";
@@ -35,8 +37,8 @@ export class Browser {
 
   private onDead: BrowserOnDead = async () => this.cleanup();
 
-  async init(override?: Options) {
-    this.userDataDir = await mkdtemp(join("/tmp", "phantompool-"));
+  async init(poolDataDir: string = tmpdir(), override?: Options) {
+    this.userDataDir = await mkdtemp(join(poolDataDir, "browser-"));
 
     const opt: Options = {
       headless: false,

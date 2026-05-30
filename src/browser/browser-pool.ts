@@ -1,3 +1,9 @@
+import { tmpdir } from "node:os";
+
+import { mkdtemp, readdir, rm } from "node:fs/promises";
+
+import { join } from "node:path";
+
 import { Browser } from "./browser";
 
 import { BrowserLease, type BrowserLeaseOnReleased } from "./lease";
@@ -25,9 +31,15 @@ export class BrowserPool {
 
   private waiters: ((b: Browser) => void)[] = [];
 
+  private poolData!: string;
+
   constructor(private config: BrowserPoolConfig) {}
 
   public async init() {
+    await this.cleanOrphansData();
+
+    this.poolData = await mkdtemp(join(tmpdir(), "phantompool-"));
+    
     await Promise.all(Array.from({ length: this.config.size }, () => this.spawn()));
   }
 
@@ -37,30 +49,8 @@ export class BrowserPool {
     await Promise.all(
       [...this.browsers.keys()].map((b) => b.close().catch(() => {})),
     );
-  }
 
-  private async spawn(): Promise<Browser> {
-    while (!this.controller.signal.aborted) {
-      try { 
-        const browser = new Browser();
-
-        await browser.init();
-
-        browser.setOnDead((dead) => this.handleDeath(dead));
-
-        this.browsers.set(browser, null);
-
-        const next = this.waiters.shift();
-
-        if (next) next(browser);
-
-        return browser;
-      } catch {
-        await Bun.sleep(1000);
-      }
-    }
-
-    throw new BrowserPoolClosedError();
+    await rm(this.poolData, { recursive: true, force: true });
   }
 
   public async acquireLease(signal: AbortSignal): Promise<BrowserLease> {
@@ -158,6 +148,30 @@ export class BrowserPool {
     return this.config.size;
   }
 
+  private async spawn(): Promise<Browser> {
+    while (!this.controller.signal.aborted) {
+      try { 
+        const browser = new Browser();
+
+        await browser.init(this.poolData);
+
+        browser.setOnDead((dead) => this.handleDeath(dead));
+
+        this.browsers.set(browser, null);
+
+        const next = this.waiters.shift();
+
+        if (next) next(browser);
+
+        return browser;
+      } catch {
+        await Bun.sleep(1000);
+      }
+    }
+
+    throw new BrowserPoolClosedError();
+  }
+
   private async handleDeath(dead: Browser) {
     if (this.controller.signal.aborted) return;
 
@@ -168,5 +182,14 @@ export class BrowserPool {
     if (lease) await lease.cancel("Browser died").catch(() => {});
 
     await this.spawn();
+  }
+
+  private async cleanOrphansData(): Promise<void> {
+    const orphans = (await readdir(tmpdir()).catch(() => [])).filter((d) => d.startsWith("phantompool-"))
+      .map((d) => join(tmpdir(), d));
+
+    await Promise.all(
+      orphans.map((d) => rm(d, { recursive: true, force: true }).catch(() => {})),
+    );
   }
 }
