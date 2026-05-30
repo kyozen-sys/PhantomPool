@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/kyozen-sys/PhantomPool/compare/v0.2.2...v0.2.3) (2026-05-30)
+
+
+### Bug Fixes
+
+* **browser:** prevent /tmp orphan dirs from accumulating across restarts ([46403ed](https://github.com/kyozen-sys/PhantomPool/commit/46403ed5654c132ccb3d31b7a6be0a32341676a2))
+
 ## [0.2.2](https://github.com/kyozen-sys/PhantomPool/compare/v0.2.1...v0.2.2) (2026-05-25)
 
 
